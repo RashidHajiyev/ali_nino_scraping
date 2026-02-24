@@ -3,14 +3,13 @@ version: "3.9"
 x-airflow-common: &airflow-common
   image: apache/airflow:2.8.1
   restart: unless-stopped
-  environment:
-    &airflow-common-env
+  environment: &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://books_user:books_password@postgres:5432/books_db
     AIRFLOW__CORE__FERNET_KEY: ""
     AIRFLOW__CORE__LOAD_EXAMPLES: "False"
 
-    # Automatically create admin user during db migrate
+    # Automatically create admin user
     _AIRFLOW_WWW_USER_CREATE: "true"
     _AIRFLOW_WWW_USER_USERNAME: admin
     _AIRFLOW_WWW_USER_PASSWORD: admin
@@ -64,6 +63,14 @@ services:
       - "8081:8080"
     depends_on:
       - airflow-init
+    environment:
+      AIRFLOW__WEBSERVER__WEB_SERVER_MASTER_TIMEOUT: "300"
+      GUNICORN_CMD_ARGS: "--workers 2"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   airflow-scheduler:
     <<: *airflow-common
